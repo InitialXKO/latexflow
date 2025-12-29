@@ -29,6 +29,7 @@ import androidx.compose.ui.input.pointer.pointerInput
  */
 data class HandwritingStroke(
     val points: List<Offset> = emptyList(),
+    val timestamps: List<Long> = emptyList(),
     val color: Color = Color.Black,
     val width: Float = 5f,
     var path: Path? = null // Caching the Path object
@@ -45,6 +46,7 @@ fun HandwritingCanvas(
 ) {
     // Optimization: Use a mutable list for points to avoid frequent allocations
     val currentPoints = remember { mutableStateListOf<Offset>() }
+    val currentTimestamps = remember { mutableStateListOf<Long>() }
     var currentPath by remember { mutableStateOf<Path?>(null) }
     
     val currentStrokes by rememberUpdatedState(strokes)
@@ -63,12 +65,15 @@ fun HandwritingCanvas(
                             when (event.type) {
                                 androidx.compose.ui.input.pointer.PointerEventType.Press -> {
                                     currentPoints.clear()
+                                    currentTimestamps.clear()
                                     currentPoints.add(position)
+                                    currentTimestamps.add(System.currentTimeMillis())
                                     currentPath = Path().apply { moveTo(position.x, position.y) }
                                 }
                                 androidx.compose.ui.input.pointer.PointerEventType.Move -> {
                                     val previous = currentPoints.lastOrNull()
                                     currentPoints.add(position)
+                                    currentTimestamps.add(System.currentTimeMillis())
                                     if (previous != null) {
                                         val midX = (previous.x + position.x) / 2
                                         val midY = (previous.y + position.y) / 2
@@ -78,13 +83,15 @@ fun HandwritingCanvas(
                                 androidx.compose.ui.input.pointer.PointerEventType.Release -> {
                                     if (currentPoints.isNotEmpty()) {
                                         val finalPoints = currentPoints.toList()
+                                        val finalTimestamps = currentTimestamps.toList()
                                         // Finalize the path for the released stroke
                                         val finalPath = createPath(finalPoints) 
-                                        val newStroke = HandwritingStroke(points = finalPoints).apply {
+                                        val newStroke = HandwritingStroke(points = finalPoints, timestamps = finalTimestamps).apply {
                                             path = finalPath
                                         }
                                         currentOnStrokesChanged(currentStrokes + newStroke)
                                         currentPoints.clear()
+                                        currentTimestamps.clear()
                                         currentPath = null
                                     }
                                 }

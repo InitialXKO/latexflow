@@ -74,17 +74,26 @@ class LocalIinkOcrEngine(private val context: android.content.Context) : OcrEngi
                 // 将 HandwritingStroke 转换为 iink PointerEvents 并添加
                 strokes.forEach { stroke ->
                     val points = stroke.points
+                    val timestamps = stroke.timestamps
+                    
                     if (points.isNotEmpty()) {
                         // Start stroke
-                        editor.pointerDown(points[0].x, points[0].y, System.currentTimeMillis(), 0.5f, com.myscript.iink.PointerType.PEN, stroke.hashCode())
+                        var t = if (timestamps.isNotEmpty()) timestamps[0] else System.currentTimeMillis()
+                        editor.pointerDown(points[0].x, points[0].y, t, 0.5f, com.myscript.iink.PointerType.PEN, stroke.hashCode())
                         
                         // Move
                         for (i in 1 until points.size) {
-                            editor.pointerMove(points[i].x, points[i].y, System.currentTimeMillis(), 0.5f, com.myscript.iink.PointerType.PEN, stroke.hashCode())
+                            val nextT = if (i < timestamps.size) timestamps[i] else t + 1
+                            // Ensure strictly increasing time if fallback loop runs fast
+                            t = if (nextT > t) nextT else t + 1
+                            editor.pointerMove(points[i].x, points[i].y, t, 0.5f, com.myscript.iink.PointerType.PEN, stroke.hashCode())
                         }
                         
                         // End stroke
-                        editor.pointerUp(points.last().x, points.last().y, System.currentTimeMillis(), 0.5f, com.myscript.iink.PointerType.PEN, stroke.hashCode())
+                        val lastIndex = points.size - 1
+                        val lastT = if (lastIndex < timestamps.size) timestamps[lastIndex] else t
+                        val finalT = if (lastT >= t) lastT else t
+                        editor.pointerUp(points.last().x, points.last().y, finalT, 0.5f, com.myscript.iink.PointerType.PEN, stroke.hashCode())
                     }
                 }
     
@@ -92,7 +101,7 @@ class LocalIinkOcrEngine(private val context: android.content.Context) : OcrEngi
                 return@withContext editor.export_(null, com.myscript.iink.MimeType.LATEX)
             } catch (e: Exception) {
                 Log.e("LocalIinkOcrEngine", "OCR Error", e)
-                return@withContext "OCR Error"
+                return@withContext "OCR Error: ${e.toString()}"
             }
         }
     }
