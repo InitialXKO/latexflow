@@ -63,7 +63,7 @@ dependencies {
     implementation("androidx.compose.material:material-icons-extended")
     
     // LaTeX Rendering
-    implementation("com.github.jianzhongli:jlatexmath-android:0.0.1")
+    implementation("ru.noties:jlatexmath-android:0.2.0")
     
     // Test dependencies
     testImplementation("junit:junit:4.13.2")
