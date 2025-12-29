@@ -62,6 +62,22 @@ fun LatexFlowApp() {
     val ocrEngine = remember { LocalIinkOcrEngine(context) }
     val historyRepo = remember { com.growsnova.latexflow.data.HistoryRepository(context) }
     
+    val scope = rememberCoroutineScope()
+    
+    // 1. Runtime Permissions (Android 12+)
+    val permissionLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.RequestMultiplePermissions()
+    ) { _ -> }
+
+    androidx.compose.runtime.LaunchedEffect(Unit) {
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+            permissionLauncher.launch(arrayOf(
+                android.Manifest.permission.BLUETOOTH_CONNECT,
+                android.Manifest.permission.BLUETOOTH_ADVERTISE
+            ))
+        }
+    }
+    
     var strokes by remember { mutableStateOf(listOf<HandwritingStroke>()) }
     var recognizedLatex by remember { mutableStateOf("") }
     var showHistory by remember { mutableStateOf(false) }
@@ -69,6 +85,29 @@ fun LatexFlowApp() {
     
     val connectionStatus by hidManager.connectionStatus.collectAsState()
     val isConnected = connectionStatus == ConnectionStatus.CONNECTED
+
+    // 2. Bluetooth Guide Dialog
+    if (!isConnected && connectionStatus != ConnectionStatus.CONNECTING && connectionStatus != ConnectionStatus.REGISTERED) {
+       // Only show if we are completely disconnected/error state for a while? 
+       // Actually, REGISTERED means we are ready but waiting for host connection. 
+       // The user prompt says "Start pairing".
+       // Let's keep it simple: if not connected, show a tip somewhere or a dialog if strict.
+       // The user request was "No Bluetooth connection guide?", possibly referencing the initial pairing.
+       // Let's add a Dialog that shows up if status is DISCONNECTED.
+       if (connectionStatus == ConnectionStatus.DISCONNECTED) {
+            androidx.compose.material3.AlertDialog(
+                onDismissRequest = { /* Cannot dismiss until connected or user explicitly cancels? */ },
+                confirmButton = {
+                    androidx.compose.material3.TextButton(onClick = {
+                        val intent = android.content.Intent(android.provider.Settings.ACTION_BLUETOOTH_SETTINGS)
+                        context.startActivity(intent)
+                    }) { Text("去蓝牙设置") }
+                },
+                title = { Text("连接电脑") },
+                text = { Text("请在电脑蓝牙设置中搜索并连接 'LatexFlow Keyboard' 以开始使用。\n(保持此页面开启)") }
+            )
+       }
+    }
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -126,7 +165,9 @@ fun LatexFlowApp() {
                     IconButton(onClick = {
                         if (strokes.isNotEmpty()) {
                             strokes = strokes.dropLast(1)
-                            recognizedLatex = ocrEngine.recognize(strokes)
+                            scope.launch {
+                                recognizedLatex = ocrEngine.recognize(strokes)
+                            }
                         }
                     }) {
                         Icon(Icons.Default.Refresh, contentDescription = "Undo")
@@ -205,7 +246,10 @@ fun LatexFlowApp() {
                 strokes = strokes,
                 onStrokesChanged = { newStrokes ->
                     strokes = newStrokes
-                    recognizedLatex = ocrEngine.recognize(strokes)
+                    // 3. Fix disappearing strokes: Async OCR
+                    scope.launch {
+                        recognizedLatex = ocrEngine.recognize(strokes)
+                    }
                 }
             )
             
