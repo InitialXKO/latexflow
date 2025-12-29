@@ -175,4 +175,20 @@ class HidKeyboardManager(private val context: Context) {
         // Short delay after "up" to prevent sequence collisions
         try { Thread.sleep(5) } catch (e: Exception) {}
     }
+    /**
+     * 主动发起连接 (即使已配对，有时也需要手机端发起 HID 连接)
+     */
+    @SuppressLint("MissingPermission")
+    fun connect(device: BluetoothDevice) {
+        try {
+            hidDevice?.connect(device)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error connecting to device: ${device.name}", e)
+        }
+    }
+
+    @SuppressLint("MissingPermission")
+    fun getPairedDevices(): Set<BluetoothDevice> {
+        return BluetoothAdapter.getDefaultAdapter()?.bondedDevices ?: emptySet()
+    }
 }

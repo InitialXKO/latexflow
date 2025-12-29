@@ -116,9 +116,11 @@ fun LatexFlowApp() {
                 onDismissRequest = { /* Cannot dismiss until connected or user explicitly cancels? */ },
                 confirmButton = {
                     androidx.compose.material3.TextButton(onClick = {
-                        val intent = android.content.Intent(android.provider.Settings.ACTION_BLUETOOTH_SETTINGS)
+                        val intent = android.content.Intent(android.bluetooth.BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE).apply {
+                            putExtra(android.bluetooth.BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, 300)
+                        }
                         context.startActivity(intent)
-                    }) { Text("去蓝牙设置") }
+                    }) { Text("被发现 (Make Discoverable)") }
                 },
                 title = { Text("连接电脑") },
                 text = { Text("请在电脑蓝牙设置中搜索并连接 'LatexFlow Keyboard' 以开始使用。\n(保持此页面开启)") }
@@ -147,7 +149,7 @@ fun LatexFlowApp() {
                 ) {
                     val statusText = when (connectionStatus) {
                         ConnectionStatus.CONNECTED -> "● 已连接至电脑 (HID Connected)"
-                        ConnectionStatus.REGISTERED -> "○ 已就绪，待连接主机 (Ready)"
+                        ConnectionStatus.REGISTERED -> "○ 已就绪 (Ready)"
                         ConnectionStatus.CONNECTING -> "○ 正在尝试连接... (Connecting)"
                         ConnectionStatus.DISCONNECTED -> "○ 未连接 (请在电脑蓝牙中选择 LatexFlow)"
                         ConnectionStatus.ERROR -> "⚠ 蓝牙服务初始化失败"
@@ -163,6 +165,29 @@ fun LatexFlowApp() {
                         style = MaterialTheme.typography.labelSmall,
                         color = statusColor
                     )
+                }
+
+                if (connectionStatus == ConnectionStatus.REGISTERED) {
+                    // Show paired devices to connect to
+                    val pairedDevices = remember(connectionStatus) { hidManager.getPairedDevices().toList() }
+                    if (pairedDevices.isNotEmpty()) {
+                         androidx.compose.foundation.lazy.LazyRow(
+                             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                             horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)
+                         ) {
+                             items(pairedDevices.size) { index ->
+                                 val device = pairedDevices[index]
+                                 // Simple name formatting
+                                 val name = try { device.name ?: "Unknown" } catch(e: SecurityException) { "Unknown" }
+                                 androidx.compose.material3.OutlinedButton(
+                                     onClick = { hidManager.connect(device) },
+                                     modifier = Modifier.padding(top = 4.dp)
+                                 ) {
+                                     Text("连接 (Connect): $name")
+                                 }
+                             }
+                         }
+                    }
                 }
                 
                 Row(
@@ -181,10 +206,12 @@ fun LatexFlowApp() {
 
                     if (!isConnected) {
                         androidx.compose.material3.TextButton(onClick = {
-                            val intent = android.content.Intent(android.provider.Settings.ACTION_BLUETOOTH_SETTINGS)
+                            val intent = android.content.Intent(android.bluetooth.BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE).apply {
+                                putExtra(android.bluetooth.BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, 300)
+                            }
                             context.startActivity(intent)
                         }) {
-                            Text("配对 (Pair)")
+                            Text("被发现 (Make Discoverable)")
                         }
                     }
                     
