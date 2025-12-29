@@ -1,0 +1,6 @@
+# Ignore all intermediate work files
+*
+!.gitignore
+!active_plans/
+!snippets/
+!archive/

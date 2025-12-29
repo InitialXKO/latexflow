@@ -1,0 +1,37 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:pathData="M65,25 C58,25 54,30 54,40 L54,68 C54,78 50,83 43,83"
+        android:strokeWidth="8"
+        android:strokeLineCap="round">
+        <gradient
+            android:startY="25"
+            android:startX="54"
+            android:endY="83"
+            android:endX="54"
+            android:type="linear">
+            <item android:offset="0" android:color="#FFA855F7"/>
+            <item android:offset="1" android:color="#FF3B82F6"/>
+        </gradient>
+    </path>
+    <!-- Glow effect using a slightly wider semi-transparent path -->
+    <path
+        android:pathData="M65,25 C58,25 54,30 54,40 L54,68 C54,78 50,83 43,83"
+        android:strokeWidth="12"
+        android:strokeLineCap="round"
+        android:strokeAlpha="0.2">
+        <gradient
+            android:startY="25"
+            android:startX="54"
+            android:endY="83"
+            android:endX="54"
+            android:type="linear">
+            <item android:offset="0" android:color="#FFA855F7"/>
+            <item android:offset="1" android:color="#FF3B82F6"/>
+        </gradient>
+    </path>
+</vector>
