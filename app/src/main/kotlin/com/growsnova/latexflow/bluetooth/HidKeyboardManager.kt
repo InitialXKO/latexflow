@@ -8,6 +8,7 @@ import android.bluetooth.BluetoothHidDeviceAppSdpSettings
 import android.bluetooth.BluetoothProfile
 import android.content.Context
 import android.util.Log
+import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -17,22 +18,21 @@ import java.util.concurrent.Executors
  * 蓝牙连接状态枚举
  */
 enum class ConnectionStatus {
-    DISCONNECTED, // 未连接
-    CONNECTING,   // 正在连接 
-    CONNECTED,    // 蓝牙已连接
-    REGISTERED,   // HID 应用已注册且可用
-    ERROR         // 出错
+    UNAVAILABLE,    // 蓝牙不可用
+    REGISTERING,    // 正在注册服务
+    DISCONNECTED,   // 已就绪但未连接
+    CONNECTING,     // 正在尝试连接主机
+    CONNECTED,      // 已连接
+    ERROR           // 发生错误
 }
 
-/**
- * 蓝牙 HID 设备管理器
- */
 class HidKeyboardManager(private val context: Context) {
     private val TAG = "HidKeyboardManager"
     private var hidDevice: BluetoothHidDevice? = null
     private var connectedDevice: BluetoothDevice? = null
+    private val scope = CoroutineScope(Dispatchers.Main + SupervisorJob())
     
-    private val _connectionStatus = MutableStateFlow(ConnectionStatus.DISCONNECTED)
+    private val _connectionStatus = MutableStateFlow(ConnectionStatus.UNAVAILABLE)
     val connectionStatus: StateFlow<ConnectionStatus> = _connectionStatus.asStateFlow()
 
 
@@ -110,6 +110,7 @@ class HidKeyboardManager(private val context: Context) {
 
     fun register() {
         pendingRegistration = true
+        _connectionStatus.value = ConnectionStatus.REGISTERING
         if (hidDevice != null) {
             doRegister()
         }
@@ -118,6 +119,9 @@ class HidKeyboardManager(private val context: Context) {
     @SuppressLint("MissingPermission")
     private fun doRegister() {
         try {
+            // 先尝试注销以清理旧状态
+            try { hidDevice?.unregisterApp() } catch (e: Exception) {}
+            
             hidDevice?.registerApp(
                 sdpSettings,
                 null,
@@ -127,8 +131,10 @@ class HidKeyboardManager(private val context: Context) {
             )
         } catch (e: SecurityException) {
             Log.e(TAG, "SecurityException: Missing BLUETOOTH_CONNECT permission", e)
+            _connectionStatus.value = ConnectionStatus.ERROR
         } catch (e: Exception) {
             Log.e(TAG, "Error registering HID app", e)
+            _connectionStatus.value = ConnectionStatus.ERROR
         }
     }
 
@@ -176,14 +182,26 @@ class HidKeyboardManager(private val context: Context) {
         try { Thread.sleep(5) } catch (e: Exception) {}
     }
     /**
-     * 主动发起连接 (即使已配对，有时也需要手机端发起 HID 连接)
+     * 主动发起连接 (增加重试逻辑)
      */
     @SuppressLint("MissingPermission")
     fun connect(device: BluetoothDevice) {
-        try {
-            hidDevice?.connect(device)
-        } catch (e: Exception) {
-            Log.e(TAG, "Error connecting to device: ${device.name}", e)
+        scope.launch {
+            var retry = 0
+            while (retry < 3) {
+                _connectionStatus.value = ConnectionStatus.CONNECTING
+                val success = try {
+                    hidDevice?.connect(device) ?: false
+                } catch (e: Exception) {
+                    false
+                }
+                
+                if (success) return@launch
+                
+                retry++
+                delay(2000)
+            }
+            _connectionStatus.value = ConnectionStatus.DISCONNECTED
         }
     }
 

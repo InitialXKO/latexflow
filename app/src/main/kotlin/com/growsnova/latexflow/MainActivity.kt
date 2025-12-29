@@ -23,9 +23,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.growsnova.latexflow.bluetooth.HidKeyboardManager
 import com.growsnova.latexflow.logic.KeyMapper
 import com.growsnova.latexflow.ui.HandwritingCanvas
+import com.growsnova.latexflow.ui.LatexView
 import com.growsnova.latexflow.data.HistoryRepository
 
 import androidx.compose.material3.IconButton
@@ -104,28 +106,37 @@ fun LatexFlowApp() {
     val isConnected = connectionStatus == ConnectionStatus.CONNECTED
 
     // 2. Bluetooth Guide Dialog
-    if (!isConnected && connectionStatus != ConnectionStatus.CONNECTING && connectionStatus != ConnectionStatus.REGISTERED) {
-       // Only show if we are completely disconnected/error state for a while? 
-       // Actually, REGISTERED means we are ready but waiting for host connection. 
-       // The user prompt says "Start pairing".
-       // Let's keep it simple: if not connected, show a tip somewhere or a dialog if strict.
-       // The user request was "No Bluetooth connection guide?", possibly referencing the initial pairing.
-       // Let's add a Dialog that shows up if status is DISCONNECTED.
-       if (connectionStatus == ConnectionStatus.DISCONNECTED) {
-            androidx.compose.material3.AlertDialog(
-                onDismissRequest = { /* Cannot dismiss until connected or user explicitly cancels? */ },
-                confirmButton = {
-                    androidx.compose.material3.TextButton(onClick = {
-                        val intent = android.content.Intent(android.bluetooth.BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE).apply {
-                            putExtra(android.bluetooth.BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, 300)
-                        }
-                        context.startActivity(intent)
-                    }) { Text("被发现 (Make Discoverable)") }
-                },
-                title = { Text("连接电脑") },
-                text = { Text("请在电脑蓝牙设置中搜索并连接 'LatexFlow Keyboard' 以开始使用。\n(保持此页面开启)") }
-            )
-       }
+    var showBluetoothGuide by remember { mutableStateOf(false) }
+    
+    if (showBluetoothGuide || connectionStatus == ConnectionStatus.UNAVAILABLE) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { showBluetoothGuide = false },
+            confirmButton = {
+                androidx.compose.material3.TextButton(onClick = {
+                    val intent = android.content.Intent(android.bluetooth.BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE).apply {
+                        putExtra(android.bluetooth.BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, 300)
+                    }
+                    context.startActivity(intent)
+                    showBluetoothGuide = false
+                }) { Text("开启被发现 (Make Discoverable)") }
+            },
+            dismissButton = {
+                androidx.compose.material3.TextButton(onClick = { showBluetoothGuide = false }) {
+                    Text("取消")
+                }
+            },
+            title = { Text(if (connectionStatus == ConnectionStatus.UNAVAILABLE) "蓝牙未开启" else "连接电脑指引") },
+            text = { 
+                Text(
+                    if (connectionStatus == ConnectionStatus.UNAVAILABLE) 
+                        "请先在系统设置中开启蓝牙，然后返回应用。" 
+                    else 
+                        "1. 点击下方按钮使手机可被发现。\n" +
+                        "2. 在电脑蓝牙设置中搜索 'LatexFlow Keyboard'。\n" +
+                        "3. 点击连接即可开始注入公式。"
+                ) 
+            }
+        )
     }
 
     Scaffold(
@@ -139,35 +150,48 @@ fun LatexFlowApp() {
                         .background(
                             when (connectionStatus) {
                                 ConnectionStatus.CONNECTED -> Color(0xFFE8F5E9)
-                                ConnectionStatus.REGISTERED -> Color(0xFFE3F2FD)
                                 ConnectionStatus.CONNECTING -> Color(0xFFFFF3E0)
+                                ConnectionStatus.DISCONNECTED -> Color(0xFFE3F2FD)
+                                ConnectionStatus.REGISTERING -> Color(0xFFF3E5F5)
                                 else -> Color(0xFFFFEBEE)
                             }
                         )
-                        .padding(vertical = 4.dp),
+                        .clickable { showBluetoothGuide = true }
+                        .padding(vertical = 6.dp),
                     horizontalArrangement = androidx.compose.foundation.layout.Arrangement.Center
                 ) {
                     val statusText = when (connectionStatus) {
-                        ConnectionStatus.CONNECTED -> "● 已连接至电脑 (HID Connected)"
-                        ConnectionStatus.REGISTERED -> "○ 已就绪 (Ready)"
-                        ConnectionStatus.CONNECTING -> "○ 正在尝试连接... (Connecting)"
-                        ConnectionStatus.DISCONNECTED -> "○ 未连接 (请在电脑蓝牙中选择 LatexFlow)"
-                        ConnectionStatus.ERROR -> "⚠ 蓝牙服务初始化失败"
+                        ConnectionStatus.CONNECTED -> "● 已连接至电脑"
+                        ConnectionStatus.CONNECTING -> "○ 正在尝试连接..."
+                        ConnectionStatus.DISCONNECTED -> "○ 已就绪，等待电脑连接"
+                        ConnectionStatus.REGISTERING -> "○ 正在初始化服务..."
+                        ConnectionStatus.UNAVAILABLE -> "⚠ 蓝牙不可用"
+                        ConnectionStatus.ERROR -> "⚠ 蓝牙初始化失败"
                     }
                     val statusColor = when (connectionStatus) {
                         ConnectionStatus.CONNECTED -> Color(0xFF2E7D32)
-                        ConnectionStatus.REGISTERED -> Color(0xFF1976D2)
                         ConnectionStatus.CONNECTING -> Color(0xFFF57C00)
+                        ConnectionStatus.DISCONNECTED -> Color(0xFF1976D2)
+                        ConnectionStatus.REGISTERING -> Color(0xFF7B1FA2)
                         else -> Color(0xFFC62828)
                     }
-                    Text(
-                        text = statusText,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = statusColor
-                    )
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            text = statusText,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = statusColor
+                        )
+                        if (connectionStatus == ConnectionStatus.DISCONNECTED) {
+                            Text(
+                                text = "点击查看连接指引",
+                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 8.sp),
+                                color = statusColor.copy(alpha = 0.6f)
+                            )
+                        }
+                    }
                 }
 
-                if (connectionStatus == ConnectionStatus.REGISTERED) {
+                if (connectionStatus == ConnectionStatus.DISCONNECTED || connectionStatus == ConnectionStatus.CONNECTING) {
                     // Show paired devices to connect to
                     val pairedDevices = remember(connectionStatus) { hidManager.getPairedDevices().toList() }
                     if (pairedDevices.isNotEmpty()) {
@@ -242,21 +266,24 @@ fun LatexFlowApp() {
 
                     Button(
                         onClick = {
-                            // Run injection in a coroutine to avoid blocking UI and allow delays
-                            val scope = CoroutineScope(Dispatchers.Main)
+                            // Run injection in a coroutine to avoid blocking UI
                             scope.launch {
                                 val actions = keyMapper.mapToActions(recognizedLatex)
                                 withContext(Dispatchers.IO) {
                                     actions.forEach { action ->
                                         hidManager.sendKey(action.scanCode, action.modifiers)
-                                        delay(50) // Delay between characters
+                                        // 增加动态延迟以提高稳定性
+                                        delay(if (action.scanCode == 0x28) 100L else 30L) 
                                     }
                                 }
                                 historyRepo.addRecord(recognizedLatex)
                             }
                         },
                         modifier = Modifier.padding(end = 16.dp),
-                        enabled = recognizedLatex.isNotEmpty()
+                        enabled = recognizedLatex.isNotEmpty() && 
+                                  !recognizedLatex.startsWith("Error:") && 
+                                  !recognizedLatex.startsWith("OCR Error:") && 
+                                  isConnected
                     ) {
                         Text("注入 (Inject)")
                     }
@@ -267,15 +294,68 @@ fun LatexFlowApp() {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .background(Color.White)
                     .padding(16.dp)
             ) {
-                Text(
-                    text = if (recognizedLatex.isEmpty()) "请开始书写公式..." else "预览: $recognizedLatex",
-                    style = MaterialTheme.typography.bodyLarge,
-                    modifier = Modifier.align(Alignment.CenterHorizontally)
-                )
-                
-                if (recognizedLatex.isEmpty()) {
+                if (recognizedLatex.isNotEmpty()) {
+                    val isError = recognizedLatex.startsWith("Error:") || recognizedLatex.startsWith("OCR Error:")
+                    
+                    if (isError) {
+                        Text(
+                            text = "识别错误 (Error):",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = Color.Red,
+                            modifier = Modifier.padding(bottom = 4.dp)
+                        )
+                        Text(
+                            text = recognizedLatex,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Color.Red,
+                            modifier = Modifier.padding(bottom = 8.dp)
+                        )
+                    } else {
+                        Text(
+                            text = "渲染预览 (Rendered):",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = Color.Gray,
+                            modifier = Modifier.padding(bottom = 4.dp)
+                        )
+                        LatexView(
+                            latex = recognizedLatex,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .heightIn(min = 60.dp)
+                                .padding(bottom = 12.dp)
+                        )
+                        
+                        androidx.compose.material3.HorizontalDivider(
+                            modifier = Modifier.padding(bottom = 8.dp),
+                            thickness = 0.5.dp,
+                            color = Color.LightGray
+                        )
+                        
+                        Text(
+                            text = "实际输出预览 (Raw Output):",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = Color.Gray,
+                            modifier = Modifier.padding(bottom = 4.dp)
+                        )
+                        Text(
+                            text = recognizedLatex,
+                            style = MaterialTheme.typography.bodyLarge.copy(
+                                fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
+                            ),
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.padding(bottom = 8.dp)
+                        )
+                    }
+                } else {
+                    Text(
+                        text = "请开始书写公式...",
+                        style = MaterialTheme.typography.bodyLarge,
+                        modifier = Modifier.align(Alignment.CenterHorizontally)
+                    )
+                    
                     val recent = historyRepo.getHistory()
                     if (recent.isNotEmpty()) {
                         Text(
@@ -312,7 +392,11 @@ fun LatexFlowApp() {
                         when (symbol) {
                             "BACKSPACE" -> {
                                 if (recognizedLatex.isNotEmpty()) {
-                                    recognizedLatex = recognizedLatex.dropLast(1)
+                                    if (recognizedLatex.startsWith("Error:") || recognizedLatex.startsWith("OCR Error:")) {
+                                        recognizedLatex = ""
+                                    } else {
+                                        recognizedLatex = recognizedLatex.dropLast(1)
+                                    }
                                 }
                             }
                             "ENTER" -> {
@@ -321,7 +405,13 @@ fun LatexFlowApp() {
                             "LEFT", "RIGHT" -> {
                                 // Handle cursor movement if we had a TextField
                             }
-                            else -> recognizedLatex += symbol
+                            else -> {
+                                if (recognizedLatex.startsWith("Error:") || recognizedLatex.startsWith("OCR Error:")) {
+                                    recognizedLatex = symbol
+                                } else {
+                                    recognizedLatex += symbol
+                                }
+                            }
                         }
                     }
                 )

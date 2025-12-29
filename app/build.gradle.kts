@@ -1,4 +1,4 @@
-﻿plugins {
+plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
 }
@@ -61,7 +61,9 @@ dependencies {
     implementation("androidx.compose.ui:ui-tooling-preview")
     implementation("androidx.compose.material3:material3")
     implementation("androidx.compose.material:material-icons-extended")
-
+    
+    // LaTeX Rendering
+    implementation("com.github.jianzhongli:jlatexmath-android:0.0.1")
     
     // Test dependencies
     testImplementation("junit:junit:4.13.2")

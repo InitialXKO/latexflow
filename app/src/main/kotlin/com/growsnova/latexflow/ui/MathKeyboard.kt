@@ -76,15 +76,43 @@ fun MathKeyboard(
                         Button(
                             onClick = { 
                                 val actionName = button.primaryActionName
+                                val resourceName = button.resourceName
+                                
                                 when (button.primaryActionType) {
                                     org.geogebra.keyboard.base.ActionType.CUSTOM -> {
-
-                                        when (button.resourceName) {
+                                        when (resourceName) {
                                             "BACKSPACE_DELETE" -> onSymbolSelected("BACKSPACE")
                                             "LEFT_ARROW" -> onSymbolSelected("LEFT")
                                             "RIGHT_ARROW" -> onSymbolSelected("RIGHT")
                                             "RETURN_ENTER" -> onSymbolSelected("ENTER")
+                                            else -> onSymbolSelected(actionName)
                                         }
+                                    }
+                                    org.geogebra.keyboard.base.ActionType.INPUT -> {
+                                        // Map internal names to LaTeX
+                                        val latex = when (actionName) {
+                                            "sin" -> "\\sin("
+                                            "cos" -> "\\cos("
+                                            "tan" -> "\\tan("
+                                            "asin" -> "\\arcsin("
+                                            "acos" -> "\\arccos("
+                                            "atan" -> "\\arctan("
+                                            "log10" -> "\\log_{10}("
+                                            "ln" -> "\\ln("
+                                            "sqrt", "ROOT" -> "\\sqrt{"
+                                            "POWA2" -> "^2"
+                                            "POWAB" -> "^"
+                                            "pi", "PI" -> "\\pi"
+                                            "euler", "EULER" -> "e"
+                                            "GEQ" -> "\\ge"
+                                            "LEQ" -> "\\le"
+                                            "NOT_EQUAL_TO" -> "\\ne"
+                                            "infinity", "INFINITY" -> "\\infty"
+                                            "abs", "ABS" -> "| "
+                                            "degree", "DEGREE" -> "^{\\circ}"
+                                            else -> actionName
+                                        }
+                                        onSymbolSelected(latex)
                                     }
                                     else -> onSymbolSelected(actionName)
                                 }
@@ -95,14 +123,19 @@ fun MathKeyboard(
                             contentPadding = PaddingValues(0.dp),
                             shape = MaterialTheme.shapes.extraSmall,
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = if (button.background == org.geogebra.keyboard.base.Background.STANDARD) Color.White else Color(0xFFDADCE0),
+                                containerColor = when (button.background) {
+                                    org.geogebra.keyboard.base.Background.STANDARD -> Color.White
+                                    org.geogebra.keyboard.base.Background.FUNCTIONAL -> Color(0xFFDADCE0)
+                                    else -> Color.White
+                                },
                                 contentColor = Color.Black
                             ),
                             elevation = ButtonDefaults.buttonElevation(defaultElevation = 1.dp)
                         ) {
+                            val label = getButtonLabel(button)
                             Text(
-                                text = getButtonLabel(button),
-                                fontSize = if (button.resourceType == ResourceType.TEXT) 18.sp else 14.sp
+                                text = label,
+                                fontSize = if (label.length > 2) 14.sp else 18.sp
                             )
                         }
                     }
@@ -116,7 +149,6 @@ private fun getButtonLabel(button: org.geogebra.keyboard.base.Button): String {
     return when (button.resourceType) {
         ResourceType.TEXT -> button.resourceName
         ResourceType.DEFINED_CONSTANT -> {
-            // Map GeoGebra constants to readable labels if needed
             when (button.resourceName) {
                 "BACKSPACE_DELETE" -> "⌫"
                 "RETURN_ENTER" -> "↵"
@@ -126,6 +158,24 @@ private fun getButtonLabel(button: org.geogebra.keyboard.base.Button): String {
                 "POWAB" -> "xⁿ"
                 "ROOT" -> "√"
                 "FRACTION" -> "÷"
+                "PI" -> "π"
+                "EULER" -> "e"
+                "GEQ" -> "≥"
+                "LEQ" -> "≤"
+                "NOT_EQUAL_TO" -> "≠"
+                "INFINITY" -> "∞"
+                "ABS" -> "|x|"
+                "DEGREE" -> "°"
+                else -> button.resourceName
+            }
+        }
+        ResourceType.TRANSLATION_MENU_KEY, ResourceType.TRANSLATION_COMMAND_KEY -> {
+            // Map common translation keys
+            when (button.resourceName) {
+                "asin" -> "sin⁻¹"
+                "acos" -> "cos⁻¹"
+                "atan" -> "tan⁻¹"
+                "log10" -> "log₁₀"
                 else -> button.resourceName
             }
         }
