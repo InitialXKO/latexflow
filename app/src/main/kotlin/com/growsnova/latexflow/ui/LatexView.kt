@@ -8,8 +8,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
-import com.caverock.androidsvg.SVG
-import sc.iview.vector.VectorView
 import org.scilab.forge.jlatexmath.TeXFormula
 import org.scilab.forge.jlatexmath.TeXIcon
 import android.graphics.Bitmap
@@ -45,7 +43,7 @@ fun LatexView(
                         Bitmap.Config.ARGB_8888
                     )
                     val canvas = Canvas(bitmap)
-                    icon.paintIcon(null, canvas, 0, 0)
+                    icon.paintIcon(canvas, 0, 0)
                     imageView.setImageBitmap(bitmap)
                 } catch (e: Exception) {
                     // Handle parsing error silently or show placeholder

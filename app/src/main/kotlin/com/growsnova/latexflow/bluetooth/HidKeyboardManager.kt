@@ -20,6 +20,7 @@ import java.util.concurrent.Executors
 enum class ConnectionStatus {
     UNAVAILABLE,    // 蓝牙不可用
     REGISTERING,    // 正在注册服务
+    REGISTERED,     // 已注册服务
     DISCONNECTED,   // 已就绪但未连接
     CONNECTING,     // 正在尝试连接主机
     CONNECTED,      // 已连接

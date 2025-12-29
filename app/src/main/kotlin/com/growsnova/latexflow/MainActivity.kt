@@ -30,6 +30,9 @@ import com.growsnova.latexflow.ui.HandwritingCanvas
 import com.growsnova.latexflow.ui.LatexView
 import com.growsnova.latexflow.data.HistoryRepository
 
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material.icons.Icons
@@ -152,6 +155,7 @@ fun LatexFlowApp() {
                                 ConnectionStatus.CONNECTED -> Color(0xFFE8F5E9)
                                 ConnectionStatus.CONNECTING -> Color(0xFFFFF3E0)
                                 ConnectionStatus.DISCONNECTED -> Color(0xFFE3F2FD)
+                                ConnectionStatus.REGISTERED -> Color(0xFFE3F2FD)
                                 ConnectionStatus.REGISTERING -> Color(0xFFF3E5F5)
                                 else -> Color(0xFFFFEBEE)
                             }
@@ -164,6 +168,7 @@ fun LatexFlowApp() {
                         ConnectionStatus.CONNECTED -> "● 已连接至电脑"
                         ConnectionStatus.CONNECTING -> "○ 正在尝试连接..."
                         ConnectionStatus.DISCONNECTED -> "○ 已就绪，等待电脑连接"
+                        ConnectionStatus.REGISTERED -> "○ 已就绪，等待电脑连接"
                         ConnectionStatus.REGISTERING -> "○ 正在初始化服务..."
                         ConnectionStatus.UNAVAILABLE -> "⚠ 蓝牙不可用"
                         ConnectionStatus.ERROR -> "⚠ 蓝牙初始化失败"
@@ -172,6 +177,7 @@ fun LatexFlowApp() {
                         ConnectionStatus.CONNECTED -> Color(0xFF2E7D32)
                         ConnectionStatus.CONNECTING -> Color(0xFFF57C00)
                         ConnectionStatus.DISCONNECTED -> Color(0xFF1976D2)
+                        ConnectionStatus.REGISTERED -> Color(0xFF1976D2)
                         ConnectionStatus.REGISTERING -> Color(0xFF7B1FA2)
                         else -> Color(0xFFC62828)
                     }
@@ -181,7 +187,7 @@ fun LatexFlowApp() {
                             style = MaterialTheme.typography.labelSmall,
                             color = statusColor
                         )
-                        if (connectionStatus == ConnectionStatus.DISCONNECTED) {
+                        if (connectionStatus == ConnectionStatus.DISCONNECTED || connectionStatus == ConnectionStatus.REGISTERED) {
                             Text(
                                 text = "点击查看连接指引",
                                 style = MaterialTheme.typography.labelSmall.copy(fontSize = 8.sp),
