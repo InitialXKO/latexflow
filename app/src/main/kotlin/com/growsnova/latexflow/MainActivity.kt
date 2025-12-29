@@ -48,12 +48,10 @@ import com.growsnova.latexflow.ocr.LocalIinkOcrEngine
 import com.growsnova.latexflow.ocr.OcrEngine
 import com.growsnova.latexflow.bluetooth.ConnectionStatus
 import com.growsnova.latexflow.ui.HandwritingStroke
-import ru.noties.jlatexmath.AjLatexMath
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        AjLatexMath.init(this)
         setContent {
             MaterialTheme {
                 LatexFlowApp()
