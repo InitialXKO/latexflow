@@ -101,6 +101,9 @@ class LocalIinkOcrEngine(private val context: android.content.Context) : OcrEngi
                 return@withContext editor.export_(null, com.myscript.iink.MimeType.LATEX)
             } catch (e: Exception) {
                 Log.e("LocalIinkOcrEngine", "OCR Error", e)
+                if (e is IllegalArgumentException && e.message?.contains("stroke has too many points") == true) {
+                     return@withContext "Error: Stroke too long (too many points). Please try shorter strokes."
+                }
                 return@withContext "OCR Error: ${e.toString()}"
             }
         }

@@ -1,6 +1,7 @@
 package com.growsnova.latexflow.ui
 
 import androidx.compose.runtime.Composable
+import kotlin.math.hypot
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -72,12 +73,21 @@ fun HandwritingCanvas(
                                 }
                                 androidx.compose.ui.input.pointer.PointerEventType.Move -> {
                                     val previous = currentPoints.lastOrNull()
-                                    currentPoints.add(position)
-                                    currentTimestamps.add(System.currentTimeMillis())
                                     if (previous != null) {
-                                        val midX = (previous.x + position.x) / 2
-                                        val midY = (previous.y + position.y) / 2
-                                        currentPath?.quadraticBezierTo(previous.x, previous.y, midX, midY)
+                                        val dx = position.x - previous.x
+                                        val dy = position.y - previous.y
+                                        val distance = hypot(dx, dy)
+                                        // Minimum distance threshold to reduce point count (5 pixels)
+                                        if (distance > 5f) {
+                                            currentPoints.add(position)
+                                            currentTimestamps.add(System.currentTimeMillis())
+                                            val midX = (previous.x + position.x) / 2
+                                            val midY = (previous.y + position.y) / 2
+                                            currentPath?.quadraticBezierTo(previous.x, previous.y, midX, midY)
+                                        }
+                                    } else {
+                                        currentPoints.add(position)
+                                        currentTimestamps.add(System.currentTimeMillis())
                                     }
                                 }
                                 androidx.compose.ui.input.pointer.PointerEventType.Release -> {
