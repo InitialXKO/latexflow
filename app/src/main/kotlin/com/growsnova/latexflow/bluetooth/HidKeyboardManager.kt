@@ -106,33 +106,49 @@ class HidKeyboardManager(private val context: Context) {
         }
     }
 
+    private var pendingRegistration = false
+
+    fun register() {
+        pendingRegistration = true
+        if (hidDevice != null) {
+            doRegister()
+        }
+    }
+
+    @SuppressLint("MissingPermission")
+    private fun doRegister() {
+        try {
+            hidDevice?.registerApp(
+                sdpSettings,
+                null,
+                null,
+                Executors.newSingleThreadExecutor(),
+                callback
+            )
+        } catch (e: SecurityException) {
+            Log.e(TAG, "SecurityException: Missing BLUETOOTH_CONNECT permission", e)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error registering HID app", e)
+        }
+    }
+
     init {
         val adapter = BluetoothAdapter.getDefaultAdapter()
         adapter?.getProfileProxy(context, object : BluetoothProfile.ServiceListener {
             override fun onServiceConnected(profile: Int, proxy: BluetoothProfile?) {
                 if (profile == BluetoothProfile.HID_DEVICE) {
                     hidDevice = proxy as BluetoothHidDevice
-                    registerApp()
+                    if (pendingRegistration) {
+                        doRegister()
+                    }
                 }
             }
-
             override fun onServiceDisconnected(profile: Int) {
                 if (profile == BluetoothProfile.HID_DEVICE) {
                     hidDevice = null
                 }
             }
         }, BluetoothProfile.HID_DEVICE)
-    }
-
-    @SuppressLint("MissingPermission")
-    private fun registerApp() {
-        hidDevice?.registerApp(
-            sdpSettings,
-            null,
-            null,
-            Executors.newSingleThreadExecutor(),
-            callback
-        )
     }
 
     /**

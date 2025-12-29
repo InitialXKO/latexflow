@@ -68,14 +68,30 @@ fun LatexFlowApp() {
     // 1. Runtime Permissions (Android 12+)
     val permissionLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
         androidx.activity.result.contract.ActivityResultContracts.RequestMultiplePermissions()
-    ) { _ -> }
+    ) { perms ->
+        val connectGranted = perms[android.Manifest.permission.BLUETOOTH_CONNECT] == true
+        if (connectGranted) {
+            hidManager.register()
+        }
+    }
 
     androidx.compose.runtime.LaunchedEffect(Unit) {
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
-            permissionLauncher.launch(arrayOf(
-                android.Manifest.permission.BLUETOOTH_CONNECT,
-                android.Manifest.permission.BLUETOOTH_ADVERTISE
-            ))
+            val hasConnect = androidx.core.content.ContextCompat.checkSelfPermission(
+                context, 
+                android.Manifest.permission.BLUETOOTH_CONNECT
+            ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+            
+            if (hasConnect) {
+                hidManager.register()
+            } else {
+                permissionLauncher.launch(arrayOf(
+                    android.Manifest.permission.BLUETOOTH_CONNECT,
+                    android.Manifest.permission.BLUETOOTH_ADVERTISE
+                ))
+            }
+        } else {
+            hidManager.register()
         }
     }
     
