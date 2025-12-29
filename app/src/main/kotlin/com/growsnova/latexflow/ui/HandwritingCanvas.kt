@@ -11,6 +11,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -43,6 +46,9 @@ fun HandwritingCanvas(
     // Optimization: Use a mutable list for points to avoid frequent allocations
     val currentPoints = remember { mutableStateListOf<Offset>() }
     var currentPath by remember { mutableStateOf<Path?>(null) }
+    
+    val currentStrokes by rememberUpdatedState(strokes)
+    val currentOnStrokesChanged by rememberUpdatedState(onStrokesChanged)
 
     Box(modifier = modifier.fillMaxSize().background(Color.White)) {
         Canvas(
@@ -77,7 +83,7 @@ fun HandwritingCanvas(
                                         val newStroke = HandwritingStroke(points = finalPoints).apply {
                                             path = finalPath
                                         }
-                                        onStrokesChanged(strokes + newStroke)
+                                        currentOnStrokesChanged(currentStrokes + newStroke)
                                         currentPoints.clear()
                                         currentPath = null
                                     }

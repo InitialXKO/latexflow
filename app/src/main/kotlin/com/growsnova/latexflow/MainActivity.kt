@@ -178,6 +178,15 @@ fun LatexFlowApp() {
                             .padding(start = 16.dp),
                         style = MaterialTheme.typography.headlineSmall
                     )
+
+                    if (!isConnected) {
+                        androidx.compose.material3.TextButton(onClick = {
+                            val intent = android.content.Intent(android.provider.Settings.ACTION_BLUETOOTH_SETTINGS)
+                            context.startActivity(intent)
+                        }) {
+                            Text("配对 (Pair)")
+                        }
+                    }
                     
                     IconButton(onClick = {
                         if (strokes.isNotEmpty()) {
