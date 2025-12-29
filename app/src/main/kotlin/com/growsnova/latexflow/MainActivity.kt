@@ -32,7 +32,7 @@ import com.growsnova.latexflow.data.HistoryRepository
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Divider
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material.icons.Icons
@@ -48,10 +48,12 @@ import com.growsnova.latexflow.ocr.LocalIinkOcrEngine
 import com.growsnova.latexflow.ocr.OcrEngine
 import com.growsnova.latexflow.bluetooth.ConnectionStatus
 import com.growsnova.latexflow.ui.HandwritingStroke
+import ru.noties.jlatexmath.AjLatexMath
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        AjLatexMath.init(this)
         setContent {
             MaterialTheme {
                 LatexFlowApp()
@@ -334,7 +336,7 @@ fun LatexFlowApp() {
                                 .padding(bottom = 12.dp)
                         )
                         
-                        androidx.compose.material3.HorizontalDivider(
+                        androidx.compose.material3.Divider(
                             modifier = Modifier.padding(bottom = 8.dp),
                             thickness = 0.5.dp,
                             color = Color.LightGray

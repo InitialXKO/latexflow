@@ -8,8 +8,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
-import org.scilab.forge.jlatexmath.TeXFormula
-import org.scilab.forge.jlatexmath.TeXIcon
+import ru.noties.jlatexmath.JLatexMathDrawable
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
@@ -34,16 +33,18 @@ fun LatexView(
         update = { imageView ->
             if (latex.isNotEmpty()) {
                 try {
-                    val formula = TeXFormula(latex)
-                    val icon = formula.createTeXIcon(TeXFormula.SERIF, textSize)
+                    val drawable = JLatexMathDrawable.builder(latex)
+                        .textSize(textSize)
+                        .color(color)
+                        .build()
                     
                     val bitmap = Bitmap.createBitmap(
-                        icon.iconWidth.coerceAtLeast(1),
-                        icon.iconHeight.coerceAtLeast(1),
+                        drawable.intrinsicWidth.coerceAtLeast(1),
+                        drawable.intrinsicHeight.coerceAtLeast(1),
                         Bitmap.Config.ARGB_8888
                     )
                     val canvas = Canvas(bitmap)
-                    icon.paintIcon(canvas, 0, 0)
+                    drawable.draw(canvas)
                     imageView.setImageBitmap(bitmap)
                 } catch (e: Exception) {
                     // Handle parsing error silently or show placeholder
